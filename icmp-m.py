@@ -98,7 +98,7 @@ def main(src,dst):
         print('---------------------------')
 
         print('answer from: ',src_ip)
-        #print('data:',data)
+        print('data:',data)
         a = str(data.decode('utf-8')).split(b'\x00'.decode('utf-8'),1)[0]
         #print('answer:      ',a)
         print('answer:\n',a)

